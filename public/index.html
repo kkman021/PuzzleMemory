@@ -387,8 +387,18 @@ body {
   100% { transform: scale(1); opacity: 1; }
 }
 
-.puzzle-piece {
+@keyframes swap-pop {
+  0% { transform: scale(0.85); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.puzzle-piece.initial-anim {
   animation: pop-in 0.3s ease-out both;
+}
+
+.puzzle-piece.swap-anim {
+  animation: swap-pop 0.3s ease-out both;
 }
 </style>
 </head>
@@ -422,7 +432,7 @@ body {
     <div class="timer" id="timer">00:00</div>
     <div class="top-actions">
       <button class="btn-sm" id="btn-preview">顯示原圖</button>
-      <button class="btn-sm" id="btn-restart">重新開始</button>
+      <button class="btn-sm" id="btn-restart">回首頁</button>
     </div>
   </div>
 
@@ -650,35 +660,59 @@ body {
     puzzleBoard.innerHTML = '';
 
     pieces.forEach((piece, index) => {
-      const div = document.createElement('div');
-      div.className = 'puzzle-piece';
+      const div = createPieceDiv(piece, index);
+      div.classList.add('initial-anim');
       div.style.animationDelay = (index * 0.03) + 's';
-      div.dataset.index = index;
-      div.appendChild(piece.canvas);
-
-      if (piece.correctIndex === index) {
-        div.classList.add('correct');
-      }
-
-      // 拖拉事件 (桌面)
-      div.draggable = true;
-      div.addEventListener('dragstart', onDragStart);
-      div.addEventListener('dragover', onDragOver);
-      div.addEventListener('dragenter', onDragEnter);
-      div.addEventListener('dragleave', onDragLeave);
-      div.addEventListener('drop', onDrop);
-      div.addEventListener('dragend', onDragEnd);
-
-      // 點擊事件
-      div.addEventListener('click', () => onPieceClick(index));
-
-      // 觸控拖拉
-      div.addEventListener('touchstart', onTouchStart, { passive: false });
-      div.addEventListener('touchmove', onTouchMove, { passive: false });
-      div.addEventListener('touchend', onTouchEnd, { passive: false });
-
       puzzleBoard.appendChild(div);
     });
+  }
+
+  function createPieceDiv(piece, index) {
+    const div = document.createElement('div');
+    div.className = 'puzzle-piece';
+    div.dataset.index = index;
+    div.appendChild(piece.canvas);
+
+    if (piece.correctIndex === index) {
+      div.classList.add('correct');
+    }
+
+    // 拖拉事件 (桌面)
+    div.draggable = true;
+    div.addEventListener('dragstart', onDragStart);
+    div.addEventListener('dragover', onDragOver);
+    div.addEventListener('dragenter', onDragEnter);
+    div.addEventListener('dragleave', onDragLeave);
+    div.addEventListener('drop', onDrop);
+    div.addEventListener('dragend', onDragEnd);
+
+    // 點擊事件
+    div.addEventListener('click', () => onPieceClick(index));
+
+    // 觸控拖拉
+    div.addEventListener('touchstart', onTouchStart, { passive: false });
+    div.addEventListener('touchmove', onTouchMove, { passive: false });
+    div.addEventListener('touchend', onTouchEnd, { passive: false });
+
+    return div;
+  }
+
+  // ===== 交換 DOM（不重建整個棋盤）=====
+  function swapPiecesDOM(i, j) {
+    const allDivs = puzzleBoard.querySelectorAll('.puzzle-piece');
+    const divI = allDivs[i];
+    const divJ = allDivs[j];
+
+    // 用新的 div 替換，保留位置
+    const newDivI = createPieceDiv(pieces[i], i);
+    const newDivJ = createPieceDiv(pieces[j], j);
+
+    // 加上交換動畫
+    newDivI.classList.add('swap-anim');
+    newDivJ.classList.add('swap-anim');
+
+    divI.replaceWith(newDivI);
+    divJ.replaceWith(newDivJ);
   }
 
   // ===== 拖拉 (桌面) =====
@@ -859,7 +893,7 @@ body {
     moveCount++;
 
     [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
-    renderBoard();
+    swapPiecesDOM(i, j);
 
     // 檢查是否完成
     if (checkComplete()) {
@@ -927,14 +961,17 @@ body {
     previewOverlay.classList.remove('show');
   });
 
-  // ===== 重新開始 =====
+  // ===== 回首頁 =====
   btnRestart.addEventListener('click', function() {
     resetTimer();
-    gameActive = true;
+    gameActive = false;
     timerStarted = false;
     moveCount = 0;
     selectedIndex = null;
-    buildPuzzle();
+
+    // 回到上傳畫面
+    screenGame.style.display = 'none';
+    screenUpload.style.display = 'flex';
   });
 
   // ===== 完成後按鈕 =====
