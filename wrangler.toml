@@ -1,5 +1,0 @@
-name = "puzzle-memory"
-compatibility_date = "2024-12-01"
-
-# Cloudflare Pages 靜態網站設定
-pages_build_output_dir = "public"

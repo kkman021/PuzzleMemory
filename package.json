@@ -4,6 +4,7 @@
   "private": true,
   "description": "拼圖記憶遊戲 - 手機優先單頁應用",
   "scripts": {
+    "build": "echo 'Static site, no build needed'",
     "deploy": "npx wrangler pages deploy public --project-name=puzzle-memory",
     "preview": "npx wrangler pages dev public"
   }
