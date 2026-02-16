@@ -791,7 +791,7 @@ body {
   // ===== 開始遊戲 =====
   btnStart.addEventListener('click', startGame);
 
-  function startGame() {
+  async function startGame() {
     if (!uploadedImage) return;
 
     screenUpload.style.display = 'none';
@@ -805,11 +805,11 @@ body {
     // 設定 inline preview 圖片
     previewFull.src = imageDataURL;
 
-    buildPuzzle();
+    await buildPuzzle();
   }
 
   // ===== 建立拼圖 =====
-  function buildPuzzle() {
+  async function buildPuzzle() {
     puzzleBoard.innerHTML = '';
 
     const containerEl = document.querySelector('.puzzle-container');
@@ -825,6 +825,24 @@ body {
     puzzleBoard.style.height = totalSize + 'px';
 
     const img = uploadedImage;
+
+    // 確保圖片完全載入和解碼，避免部分載入問題
+    if (img.decode) {
+      try {
+        await img.decode();
+      } catch (e) {
+        // 如果 decode 失敗，繼續執行（兼容舊瀏覽器）
+      }
+    }
+
+    // 如果圖片還沒完全載入，等待載入完成
+    if (!img.complete) {
+      await new Promise((resolve) => {
+        img.onload = resolve;
+        img.onerror = resolve; // 即使錯誤也繼續
+      });
+    }
+
     const cropSize = Math.min(img.width, img.height);
     const sx = (img.width - cropSize) / 2;
     const sy = (img.height - cropSize) / 2;
@@ -1092,6 +1110,9 @@ body {
 
     moveCount++;
 
+    // 清除選擇狀態，避免黃框殘留
+    clearSelection();
+
     [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
     swapPiecesDOM(i, j);
 
@@ -1206,14 +1227,14 @@ body {
   });
 
   // ===== 完成後按鈕 =====
-  btnPlayAgain.addEventListener('click', function() {
+  btnPlayAgain.addEventListener('click', async function() {
     completeOverlay.classList.remove('show');
     resetTimer();
     gameActive = true;
     timerStarted = false;
     moveCount = 0;
     selectedIndex = null;
-    buildPuzzle();
+    await buildPuzzle();
   });
 
   btnNewImage.addEventListener('click', function() {
